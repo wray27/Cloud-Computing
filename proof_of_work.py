@@ -2,8 +2,21 @@ import random
 import hashlib
 import time
 import getopt, sys
+import boto3 as boto
+import os
+import pem
 
 
+def find_private_key():
+    
+    files = [f for f in os.listdir('.') if os.path.isfile(f)]
+    
+    for file in files:
+        ext = file.split(".")[1]
+        if ext == "pem":
+             print(file)
+ 
+   
 def hash_gen(nonce):
     
     block = "COMSM0010cloud"
@@ -47,14 +60,18 @@ def check_nonce_in_range(start, stop, D):
 
     return nonce
     
-def test():
+def local_nonce_test():
+
     start = time.time()
     proof_of_work = check_nonce_in_range(0,100000000,20)
     end = time.time()
 
     print(end - start)
     print(proof_of_work)
+    print()
 
+def find_key_test():
+    find_key()
 
 if __name__ == "__main__":
     arguments = len(sys.argv) - 1
@@ -76,5 +93,5 @@ if __name__ == "__main__":
         elif current_argument in ("-D", "--Difficulty"):
             print()
         elif current_argument in ("-t", "Test"):
-            test()
-
+            local_nonce_test()
+            find_key_test()

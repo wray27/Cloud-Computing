@@ -1,7 +1,7 @@
 import random
 import hashlib
 import time
-import sys
+import getopt, sys
 
 
 def hash_gen(nonce):
@@ -46,12 +46,35 @@ def check_nonce_in_range(start, stop, D):
             break
 
     return nonce
-
     
+def test():
+    start = time.time()
+    proof_of_work = check_nonce_in_range(0,100000000,20)
+    end = time.time()
 
-start = time.time()
-proof_of_work = check_nonce_in_range(0,100000000,25)
-end = time.time()
+    print(end - start)
+    print(proof_of_work)
 
-print(end - start)
-print(proof_of_work)
+
+if __name__ == "__main__":
+    arguments = len(sys.argv) - 1
+    full_cmd_arguments = sys.argv
+    argument_list = full_cmd_arguments[1:]
+
+    unix_options = "htD:C:"
+    gnu_options = ["help", "Difficulty", "Cores", "test"]
+
+    try:
+        arguments, values = getopt.getopt(argument_list, unix_options, gnu_options)
+    except getopt.error as err:
+        print(str(err))
+        sys.exit(2)
+
+    for current_argument, current_value in arguments:
+        if current_argument in ("-h", "--help"):
+            print()
+        elif current_argument in ("-D", "--Difficulty"):
+            print()
+        elif current_argument in ("-t", "Test"):
+            test()
+

@@ -5,12 +5,16 @@ import json
 iam = boto3.client('iam')
 
 def clean():
-    # iam.remove_role_from_group(GroupName='admin',RoleName='demo')
     iam.delete_group(GroupName="admin")
+    iam.remove_role_from_instance_profile(RoleName='demo', InstanceProfileName="demo_profile")
+    iam.delete_instance_profile(InstanceProfileName="demo_profile")
     iam.delete_role(RoleName="demo")
 
 
-# clean()
+
+
+
+
 response = iam.create_group(
     Path ="/",
     GroupName="admin"
@@ -37,10 +41,17 @@ response = iam.create_role(
 )
 print(response)
 
+response = iam.create_instance_profile(
+    InstanceProfileName="demo_profile"
+)
+print(response)
 
+response = iam.add_role_to_instance_profile(
+    InstanceProfileName="demo_profile",
+    RoleName="demo"
+)
 
-
-
+print(response)
 
 clean()
 

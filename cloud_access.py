@@ -4,9 +4,6 @@ import json
 from requests import get
 import time
 
-
-
-
 def cloud_setup():
     iam = boto3.client('iam')
     client = boto3.client('ec2')
@@ -131,8 +128,9 @@ def start_instances(no_instances=1):
     touch i_made_it.txt
     sudo yum install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_386/amazon-ssm-agent.rpm
     sudo systemctl start amazon-ssm-agent
-    sudo yum install python36
-    cd ~"""
+    cd ~
+    sudo yum -y install python3
+    """
     
     instances = ec2.create_instances(
         ImageId = 'ami-00e8b55a2e841be44',
@@ -157,16 +155,22 @@ def start_instances(no_instances=1):
 
     count = 0
     for instance in instances:
-        print("Starting Instance " + str(count)+ "...")
+        print("Starting Instance-" + str(count)+ "...")
+        print("(Waiting until the instance is up and running, this may take a few moments)")
         instance.wait_until_running()
         instance.load()
         ip_address = instance.public_ip_address.replace('.','-')
-        print("Instance " + str(count) + " IP Address: " + instance.public_ip_address)
-        waiter = client.get_waiter('instance_status_ok')
-        waiter.wait(InstanceIds=[instance.instance_id])
+        print("Instance-" + str(count) + " IP Address: " + instance.public_ip_address)
+        time.sleep(12)
         os.system('scp -o "StrictHostKeyChecking no" -i %s %s ec2-user@ec2-%s.eu-west-2.compute.amazonaws.com:proof_of_work.py' % ('ec2-keypair.pem', 'proof_of_work.py', ip_address))
         # instance.terminate()
         count += 1
+    
+    print("Checking status of all instances...")
+    waiter = client.get_waiter('instance_status_ok')
+    waiter.wait(InstanceIds=get_instance_ids(instances))
+    print("Check complete.")
+    
     return instances
 
 def get_instance_ids(instances):
@@ -179,10 +183,9 @@ def terminate_instances(instances):
     for instance in instances:
         instance.terminate()
 
-def send_commands_to_instance(instance, commands=[]):
+def send_commands_to_instance(instance, instance_no, commands):
     client = boto3.client('ssm')
     instance_id = instance.instance_id
-    print(instance_id)
     response = client.send_command(
         InstanceIds=[instance_id],
         DocumentName='AWS-RunShellScript',
@@ -193,16 +196,38 @@ def send_commands_to_instance(instance, commands=[]):
 
 
     )
-    print(response)
+    print("Commands sent to Instance-" + str(instance_no) + ".")
 
 def get_command_outputs(instances):
     client = boto3.client('ssm')
     outputs = []
+    count = 0
+    wait = True
+    
     for i in instances:
-        response = client.list_command_invocations(
-            InstanceId=i.instance_id
-        )
-        output = response['CommandInvocations']['CommandPlugins']['Output']
+        while wait:
+            response = client.list_command_invocations(
+                InstanceId=i.instance_id,
+                Details=True
+            )
+            
+            status = response['CommandInvocations'][0]['Status']
+            if status == "Success":
+                wait = False
+            elif status == "Failed":
+                wait = False
+                print("Instance-" + str(count) + " Failed to run commands.")
+            elif status =='TimedOut':
+                wait = False
+                print("Instance-" + str(count) + " Timed Out when running commands.")
+                
+        
+        count += 1
+        output = response['CommandInvocations'][0]['CommandPlugins'][0]['Output']
+        print(output)
+        outputs.append(output)
+    
+    return outputs
 
 
 
@@ -211,5 +236,9 @@ if not os.path.exists('ec2-keypair.pem'):
 
 instances = start_instances()
 
-send_commands_to_instance(instances[0],[''])
-# terminate_instances(instances)
+#TODO: want a function that divides work here
+commands = ["python3 -V"]
+send_commands_to_instance(instances[0], 0, commands)
+time.sleep(1)
+print(get_command_outputs(instances))
+terminate_instances(instances)

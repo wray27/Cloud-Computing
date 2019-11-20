@@ -103,14 +103,14 @@ def cloud_setup():
 
     print("Security group created.")
 
-    key_name = 'ec2-keypair'
+    key_name = 'aw16997-keypair'
     print("Creating Key Pair " + key_name + "...")
-    outfile = open('ec2-keypair.pem', 'w')
+    outfile = open('aw16997-keypair.pem', 'w')
     key_pair = ec2.create_key_pair(KeyName=key_name)
     key_pair_out = str(key_pair.key_material)
     outfile.write(key_pair_out)
     outfile.close()
-    os.system("chmod 400 ec2-keypair.pem")
+    os.system("chmod 400 aw16997-keypair.pem")
     print(key_name + " created and saved to local directory.")
 
     print("Setup complete.")
@@ -119,7 +119,7 @@ def start_instances(no_instances=1):
     iam = boto3.client('iam')
     client = boto3.client('ec2')
     ec2 = boto3.resource('ec2')
-    key_name = 'ec2-keypair'
+    key_name = 'aw16997-keypair'
     print("Starting instances...")
     
     user_data_script = """#!/bin/bash
@@ -162,7 +162,7 @@ def start_instances(no_instances=1):
         ip_address = instance.public_ip_address.replace('.','-')
         print("Instance-" + str(count) + " IP Address: " + instance.public_ip_address)
         time.sleep(12)
-        os.system('scp -o "StrictHostKeyChecking no" -i %s %s ec2-user@ec2-%s.eu-west-2.compute.amazonaws.com:proof_of_work.py' % ('ec2-keypair.pem', 'proof_of_work.py', ip_address))
+        os.system('scp -o "StrictHostKeyChecking no" -i %s %s ec2-user@ec2-%s.eu-west-2.compute.amazonaws.com:proof_of_work.py' % ('aw16997-keypair.pem', 'proof_of_work.py', ip_address))
         # instance.terminate()
         count += 1
     
@@ -231,7 +231,7 @@ def get_command_outputs(instances):
 
 
 
-if not os.path.exists('ec2-keypair.pem'):
+if not os.path.exists('aw16997-keypair.pem'):
     cloud_setup()
 
 instances = start_instances()

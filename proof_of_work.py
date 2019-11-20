@@ -68,8 +68,8 @@ if __name__ == "__main__":
     full_cmd_arguments = sys.argv
     argument_list = full_cmd_arguments[1:]
 
-    unix_options = "htD:C:"
-    gnu_options = ["help", "Difficulty", "Cores", "test"]
+    unix_options = "htd:i:"
+    gnu_options = ["help", "difficulty", "no-instances", "test"]
 
     try:
         arguments, values = getopt.getopt(argument_list, unix_options, gnu_options)
@@ -80,8 +80,8 @@ if __name__ == "__main__":
     for current_argument, current_value in arguments:
         if current_argument in ("-h", "--help"):
             print()
-        elif current_argument in ("-D", "--Difficulty"):
+        elif current_argument in ("-d", "--difficulty"):
             print()
-        elif current_argument in ("-t", "Test"):
+        elif current_argument in ("-t", "test"):
             local_nonce_test()
             # cloud_access()

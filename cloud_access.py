@@ -3,6 +3,40 @@ import os
 import json
 from requests import get
 import time
+import argparse
+import proof_of_work
+
+parser = argparse.ArgumentParser(
+        description="Finding the golden nonce in the cloud.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+parser.add_argument("-N", "--number-of-vms", help="number of vms to run the code", choices=range(51), required=False, type=int, default=0)
+parser.add_argument("-D", "--difficulty", help="difficulty",choices=range(256), type=int, default=0, required=False)
+parser.add_argument("-L", "--confidence", help="confidence level between 0 and 1", default=1, type=float, required=False)
+parser.add_argument("-T", "--time", help="time before stopping",choices= range(60,1801), nargs=1, type=int, default= 300, required=False)
+parser.parse_args()
+
+# Print iterations progress
+def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, length = 100, fill = '█', printEnd = "\r"):
+    """
+    Call in a loop to create terminal progress bar
+    @params:
+        iteration   - Required  : current iteration (Int)
+        total       - Required  : total iterations (Int)
+        prefix      - Optional  : prefix string (Str)
+        suffix      - Optional  : suffix string (Str)
+        decimals    - Optional  : positive number of decimals in percent complete (Int)
+        length      - Optional  : character length of bar (Int)
+        fill        - Optional  : bar fill character (Str)
+        printEnd    - Optional  : end character (e.g. "\r", "\r\n") (Str)
+    """
+    percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
+    filledLength = int(length * iteration // total)
+    bar = fill * filledLength + '-' * (length - filledLength)
+    print('\r%s |%s| %s%% %s' % (prefix, bar, percent, suffix), end = printEnd)
+    # Print New Line on Complete
+    if iteration == total: 
+        print()
 
 def cloud_setup():
     iam = boto3.client('iam')
@@ -127,9 +161,10 @@ def start_instances(no_instances=1):
     sudo yum update
     touch i_made_it.txt
     sudo yum install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_386/amazon-ssm-agent.rpm
-    sudo systemctl start amazon-ssm-agent
     cd ~
     sudo yum -y install python3
+    sudo systemctl start amazon-ssm-agent
+  
     """
     
     instances = ec2.create_instances(
@@ -162,8 +197,7 @@ def start_instances(no_instances=1):
         ip_address = instance.public_ip_address.replace('.','-')
         print("Instance-" + str(count) + " IP Address: " + instance.public_ip_address)
         time.sleep(12)
-        os.system('scp -o "StrictHostKeyChecking no" -i %s %s ec2-user@ec2-%s.eu-west-2.compute.amazonaws.com:proof_of_work.py' % ('aw16997-keypair.pem', 'proof_of_work.py', ip_address))
-        # instance.terminate()
+        os.system('scp -oUserKnownHostsFile=/dev/null -o "StrictHostKeyChecking no" -i %s %s ec2-user@ec2-%s.eu-west-2.compute.amazonaws.com:proof_of_work.py' % ('aw16997-keypair.pem', 'proof_of_work.py', ip_address))
         count += 1
     
     print("Checking status of all instances...")
@@ -183,7 +217,7 @@ def terminate_instances(instances):
     for instance in instances:
         instance.terminate()
 
-def send_commands_to_instance(instance, instance_no, commands):
+def send_command_to_instance(instance, instance_no, commands):
     client = boto3.client('ssm')
     instance_id = instance.instance_id
     response = client.send_command(
@@ -191,7 +225,8 @@ def send_commands_to_instance(instance, instance_no, commands):
         DocumentName='AWS-RunShellScript',
         Comment="python test",
         Parameters={
-            'commands': commands 
+            'commands': commands, 
+            'workingDirectory':['~']
         },
 
 
@@ -210,7 +245,7 @@ def get_command_outputs(instances):
                 InstanceId=i.instance_id,
                 Details=True
             )
-            
+            # print(response)
             status = response['CommandInvocations'][0]['Status']
             if status == "Success":
                 wait = False
@@ -224,21 +259,34 @@ def get_command_outputs(instances):
         
         count += 1
         output = response['CommandInvocations'][0]['CommandPlugins'][0]['Output']
-        print(output)
+        # print(output)
         outputs.append(output)
     
     return outputs
 
+def main(args):
+    number_of_vms = args.number_of_vms
+    confidence = args.confidence
+    time_limit = args.time
+    difficulty = args.difficulty
 
+    if number_of_vms == 0:
+        proof_of_work.main(args)
+        return
 
-if not os.path.exists('aw16997-keypair.pem'):
-    cloud_setup()
+    if not os.path.exists('aw16997-keypair.pem'):
+        cloud_setup()
 
-instances = start_instances()
+    instances = start_instances(number_of_vms)
+    #TODO: want a function that divides work here
+    commands = [f"python3 /home/ec2-user/proof_of_work.py -N {number_of_vms}"]
+    # commands = ['whoami']
+    send_command_to_instance(instances[0], 0, commands)
+    time.sleep(time_limit)
+    print(get_command_outputs(instances))
+    terminate_instances(instances)
 
-#TODO: want a function that divides work here
-commands = ["python3 -V"]
-send_commands_to_instance(instances[0], 0, commands)
-time.sleep(1)
-print(get_command_outputs(instances))
-terminate_instances(instances)
+if __name__ == "__main__":
+    main(parser.parse_args())
+
+    

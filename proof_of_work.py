@@ -3,11 +3,21 @@ import hashlib
 import time
 import getopt, sys
 import os
+import argparse
 
 
+parser = argparse.ArgumentParser(
+        description="Finding the golden nonce in the cloud.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    
+parser.add_argument("-N", "--number-of-vms", help="number of vms to run the code", choices=range(51), required=False, type=int, default=0)
+parser.add_argument("-D", "--difficulty", help="difficulty",choices=range(256), type=int, default=0, required=False)
+parser.add_argument("-L", "--confidence", help="confidence level between 0 and 1", default=1, type=float, required=False)
+parser.add_argument("-T", "--time", help="time before stopping",choices= range(60,1801), nargs=1, type=int, default= 300, required=False)
+parser.parse_args()
 
- 
-   
+
 def hash_gen(nonce):
     
     block = "COMSM0010cloud"
@@ -40,48 +50,83 @@ def golden_nonce(D, hash):
     return is_golden
 
 
-def check_nonce_in_range(start, stop, D):
+def check_nonce_in_range(start, stop, time_limit, D):
     golden = False
     nonce = []
+    start_time = time.time()
     for i in range(start,stop):
+        end_time = time.time()
+        elapsed_time = end_time - start_time
         golden = golden_nonce(D, hash_gen(i))
+        
         if golden: 
             nonce.append(i)
             break
+        elif elapsed_time >= time_limit:
+            break
+        
 
     return nonce
     
 def local_nonce_test():
-
+    
     start = time.time()
-    proof_of_work = check_nonce_in_range(0,100000000,4)
+    proof_of_work = check_nonce_in_range(start=0, stop=100000000, time_limit=300, D=24)
     end = time.time()
 
     print(end - start)
     print(proof_of_work)
-    print()
+    # print()
+
+def performance_test(time_limit=300):
+    golden = False
+    number_checked = 0
+    start_time = time.time()
+    for i in range(sys.maxsize):
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        golden = golden_nonce(255, hash_gen(i))
+        number_checked = i
+        
+        if golden: 
+            # not expecting it to be golden
+            performance = 0
+            break
+        elif elapsed_time >= time_limit:
+            break
+        
+    performance = number_checked / time_limit
+    print(performance)
+    return performance
+    
+    
 
 
+def help():
+    print('proof_of_work.py -N <Number of VMs>')
+    print('proof_of_work.py -L <Confidence>')
+    print('proof_of_work.py -T <Time before ending request in seconds>')
+
+
+
+def main(args):
+    number_of_vms = args.number_of_vms
+    confidence = args.confidence
+    time= args.time
+    difficulty = args.difficulty
+   
+    # code is intended to run on the cloud but obviously can be run from local machine to
+    # this assumes number of vms = 0
+
+    if number_of_vms == 0:
+        print("Running on local machine...")
+        performance = performance_test()
+        print("hash rate on local machine is approxiamtely ", performance, "per second")
+    else:
+        performance_test(time_limit=time)
+    
+ 
 
 if __name__ == "__main__":
-    arguments = len(sys.argv) - 1
-    full_cmd_arguments = sys.argv
-    argument_list = full_cmd_arguments[1:]
+    main(parser.parse_args())
 
-    unix_options = "htd:i:"
-    gnu_options = ["help", "difficulty", "no-instances", "test"]
-
-    try:
-        arguments, values = getopt.getopt(argument_list, unix_options, gnu_options)
-    except getopt.error as err:
-        print(str(err))
-        sys.exit(2)
-
-    for current_argument, current_value in arguments:
-        if current_argument in ("-h", "--help"):
-            print()
-        elif current_argument in ("-d", "--difficulty"):
-            print()
-        elif current_argument in ("-t", "test"):
-            local_nonce_test()
-            # cloud_access()

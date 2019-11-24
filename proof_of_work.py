@@ -15,6 +15,8 @@ parser.add_argument("-N", "--number-of-vms", help="number of vms to run the code
 parser.add_argument("-D", "--difficulty", help="difficulty",choices=range(256), type=int, default=0, required=False)
 parser.add_argument("-L", "--confidence", help="confidence level between 0 and 1", default=1, type=float, required=False)
 parser.add_argument("-T", "--time", help="time before stopping",choices= range(60,1801), nargs=1, type=int, default= 300, required=False)
+parser.add_argument("-b", "--start", help="time before stopping", nargs=1, type=int, default= 0, required=False)
+parser.add_argument("-e", "--stop", help="time before stopping", nargs=1, type=int, default= 0, required=False)
 parser.parse_args()
 
 
@@ -86,34 +88,27 @@ def performance_test(time_limit=300):
         end_time = time.time()
         elapsed_time = end_time - start_time
         golden = golden_nonce(255, hash_gen(i))
-        number_checked = i
+        
         
         if golden: 
             # not expecting it to be golden
             performance = 0
             break
         elif elapsed_time >= time_limit:
+            number_checked = i
             break
         
     performance = number_checked / time_limit
     print(performance)
     return performance
     
-    
-
-
-def help():
-    print('proof_of_work.py -N <Number of VMs>')
-    print('proof_of_work.py -L <Confidence>')
-    print('proof_of_work.py -T <Time before ending request in seconds>')
-
-
-
 def main(args):
     number_of_vms = args.number_of_vms
     confidence = args.confidence
     time= args.time
     difficulty = args.difficulty
+    start = args.start
+    stop = args.stop
    
     # code is intended to run on the cloud but obviously can be run from local machine to
     # this assumes number of vms = 0
@@ -123,8 +118,8 @@ def main(args):
         performance = performance_test()
         print("hash rate on local machine is approxiamtely ", performance, "per second")
     else:
-        performance_test(time_limit=time)
-    
+        # performance_test(time_limit=time)
+        check_nonce_in_range(start, stop, time, difficulty)
  
 
 if __name__ == "__main__":

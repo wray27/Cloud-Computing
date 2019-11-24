@@ -2,6 +2,7 @@ import boto3
 import os 
 import json
 from requests import get
+import sys
 import time
 import argparse
 import proof_of_work
@@ -15,28 +16,6 @@ parser.add_argument("-D", "--difficulty", help="difficulty",choices=range(256), 
 parser.add_argument("-L", "--confidence", help="confidence level between 0 and 1", default=1, type=float, required=False)
 parser.add_argument("-T", "--time", help="time before stopping",choices= range(60,1801), nargs=1, type=int, default= 300, required=False)
 parser.parse_args()
-
-# Print iterations progress
-def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, length = 100, fill = '█', printEnd = "\r"):
-    """
-    Call in a loop to create terminal progress bar
-    @params:
-        iteration   - Required  : current iteration (Int)
-        total       - Required  : total iterations (Int)
-        prefix      - Optional  : prefix string (Str)
-        suffix      - Optional  : suffix string (Str)
-        decimals    - Optional  : positive number of decimals in percent complete (Int)
-        length      - Optional  : character length of bar (Int)
-        fill        - Optional  : bar fill character (Str)
-        printEnd    - Optional  : end character (e.g. "\r", "\r\n") (Str)
-    """
-    percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
-    filledLength = int(length * iteration // total)
-    bar = fill * filledLength + '-' * (length - filledLength)
-    print('\r%s |%s| %s%% %s' % (prefix, bar, percent, suffix), end = printEnd)
-    # Print New Line on Complete
-    if iteration == total: 
-        print()
 
 def cloud_setup():
     iam = boto3.client('iam')
@@ -233,14 +212,20 @@ def send_command_to_instance(instance, instance_no, commands):
     )
     print("Commands sent to Instance-" + str(instance_no) + ".")
 
-def get_command_outputs(instances):
+def send_all_commands(instances, commands):
+    count = 0
+    for i in instances:
+        send_command_to_instance(i, count, [commands[count]])
+        count += 1
+
+def get_command_output(instances):
+    # returns as soon as the first vm recieves an output
     client = boto3.client('ssm')
-    outputs = []
+    output = []
     count = 0
     wait = True
-    
-    for i in instances:
-        while wait:
+    while wait:
+        for i in instances:
             response = client.list_command_invocations(
                 InstanceId=i.instance_id,
                 Details=True
@@ -248,6 +233,7 @@ def get_command_outputs(instances):
             # print(response)
             status = response['CommandInvocations'][0]['Status']
             if status == "Success":
+                output = response['CommandInvocations'][0]['CommandPlugins'][0]['Output']
                 wait = False
             elif status == "Failed":
                 wait = False
@@ -256,19 +242,47 @@ def get_command_outputs(instances):
                 wait = False
                 print("Instance-" + str(count) + " Timed Out when running commands.")
                 
+            count += 1
         
-        count += 1
-        output = response['CommandInvocations'][0]['CommandPlugins'][0]['Output']
-        # print(output)
-        outputs.append(output)
     
-    return outputs
+    return output
+
+def split_work(number_of_vms, time_limit):
+
+    # how many values its able to check per second
+    performance = 150000
+
+    # number of checks an instance can perform in given time
+    total_instance_checks = performance * time_limit
+
+    ranges = []
+
+    for i in range(number_of_vms):
+        check_range = {'Start':i*total_instance_checks, 'Stop': (i+1) * total_instance_checks}
+        ranges.append(check_range)
+
+
+    return ranges
+
+
+def generate_commands(number_of_vms, time_limit, difficulty):
+
+    commands = []
+    ranges = split_work(number_of_vms, time_limit)
+
+    for i in range(number_of_vms):
+        command = f"python3 /home/ec2-user/proof_of_work.py -t {time_limit} -D {difficulty} -N {number_of_vms} -b {ranges[i]['Start']} -e {ranges[i]['Stop']}"
+        commands.append(command)
+
+    return commands
 
 def main(args):
     number_of_vms = args.number_of_vms
     confidence = args.confidence
     time_limit = args.time
     difficulty = args.difficulty
+
+    
 
     if number_of_vms == 0:
         proof_of_work.main(args)
@@ -278,13 +292,14 @@ def main(args):
         cloud_setup()
 
     instances = start_instances(number_of_vms)
-    #TODO: want a function that divides work here
-    commands = [f"python3 /home/ec2-user/proof_of_work.py -N {number_of_vms}"]
-    # commands = ['whoami']
-    send_command_to_instance(instances[0], 0, commands)
-    time.sleep(time_limit)
-    print(get_command_outputs(instances))
-    terminate_instances(instances)
+    # #TODO: want a function that divides work here
+    # commands = [f"python3 /home/ec2-user/proof_of_work.py -N {number_of_vms}"]
+    commands = generate_commands(number_of_vms, time_limit, difficulty)
+    send_all_commands(instances, commands)
+
+    # time.sleep(time_limit)
+    # print(get_command_output(instances))
+    # terminate_instances(instances)
 
 if __name__ == "__main__":
     main(parser.parse_args())

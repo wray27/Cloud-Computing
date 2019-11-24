@@ -6,6 +6,8 @@ import sys
 import time
 import argparse
 import proof_of_work
+from threading import Thread
+import concurrent.futures
 
 parser = argparse.ArgumentParser(
         description="Finding the golden nonce in the cloud.",
@@ -276,6 +278,15 @@ def generate_commands(number_of_vms, time_limit, difficulty):
 
     return commands
 
+def countdown(t):
+    while t:
+        mins, secs = divmod(t, 60)
+        timeformat = '{:02d}:{:02d}s'.format(mins, secs)
+        print(timeformat,"left until instances are terminated.", end='\r')
+        time.sleep(1)
+        t -= 1
+    print('Time limit has been reached. No golden nonce has been found.')
+
 def main(args):
     number_of_vms = args.number_of_vms
     confidence = args.confidence
@@ -284,22 +295,32 @@ def main(args):
 
     
 
-    if number_of_vms == 0:
-        proof_of_work.main(args)
-        return
+    # if number_of_vms == 0:
+    #     proof_of_work.main(args)
+    #     return
 
-    if not os.path.exists('aw16997-keypair.pem'):
-        cloud_setup()
+    # if not os.path.exists('aw16997-keypair.pem'):
+    #     cloud_setup()
 
-    instances = start_instances(number_of_vms)
-    # #TODO: want a function that divides work here
-    # commands = [f"python3 /home/ec2-user/proof_of_work.py -N {number_of_vms}"]
-    commands = generate_commands(number_of_vms, time_limit, difficulty)
-    send_all_commands(instances, commands)
+    # instances = start_instances(number_of_vms)
+    # # #TODO: want a function that divides work here
+    # # commands = [f"python3 /home/ec2-user/proof_of_work.py -N {number_of_vms}"]
+    # commands = generate_commands(number_of_vms, time_limit, difficulty)
+    # send_all_commands(instances, commands)
 
-    # time.sleep(time_limit)
-    # print(get_command_output(instances))
-    # terminate_instances(instances)
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        t1 = executor.submit(countdown(time_limit))
+        t2 = executor.submit()
+        return_value = future.result()
+        print(return_value)
+
+    
+    t1 = Thread(target=countdown(11))
+    t2 = Thread(target=time.sleep(11))
+    t1.start() #Calls first function
+    t2.start()
+    # # print(get_command_output(instances))
+    # # terminate_instances(instances)
 
 if __name__ == "__main__":
     main(parser.parse_args())

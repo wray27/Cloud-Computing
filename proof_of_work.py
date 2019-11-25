@@ -14,9 +14,9 @@ parser = argparse.ArgumentParser(
 parser.add_argument("-N", "--number-of-vms", help="number of vms to run the code", choices=range(51), required=False, type=int, default=0)
 parser.add_argument("-D", "--difficulty", help="difficulty",choices=range(256), type=int, default=0, required=False)
 parser.add_argument("-L", "--confidence", help="confidence level between 0 and 1", default=1, type=float, required=False)
-parser.add_argument("-T", "--time", help="time before stopping",choices= range(60,1801), nargs=1, type=int, default= 300, required=False)
-parser.add_argument("-b", "--start", help="time before stopping", nargs=1, type=int, default= 0, required=False)
-parser.add_argument("-e", "--stop", help="time before stopping", nargs=1, type=int, default= 0, required=False)
+parser.add_argument("-T", "--time", help="time before stopping",choices= range(60,1801), type=int, default= 300, required=False)
+parser.add_argument("-b", "--start", help="time before stopping", type=int, default= 0, required=False)
+parser.add_argument("-e", "--stop", help="time before stopping", type=int, default= 0, required=False)
 parser.parse_args()
 
 
@@ -63,6 +63,7 @@ def check_nonce_in_range(start, stop, time_limit, D):
         
         if golden: 
             nonce.append(i)
+            nonce.append(elapsed_time)
             break
         elif elapsed_time >= time_limit:
             break
@@ -109,17 +110,17 @@ def main(args):
     difficulty = args.difficulty
     start = args.start
     stop = args.stop
-   
+    
     # code is intended to run on the cloud but obviously can be run from local machine to
     # this assumes number of vms = 0
-
     if number_of_vms == 0:
         print("Running on local machine...")
         performance = performance_test()
         print("hash rate on local machine is approxiamtely ", performance, "per second")
     else:
         # performance_test(time_limit=time)
-        check_nonce_in_range(start, stop, time, difficulty)
+        nonce = check_nonce_in_range(start, stop, time, difficulty)
+        print(nonce)
  
 
 if __name__ == "__main__":

@@ -16,7 +16,7 @@ parser = argparse.ArgumentParser(
 parser.add_argument("-N", "--number-of-vms", help="number of vms to run the code", choices=range(51), required=False, type=int, default=0)
 parser.add_argument("-D", "--difficulty", help="difficulty",choices=range(256), type=int, default=0, required=False)
 parser.add_argument("-L", "--confidence", help="confidence level between 0 and 1", default=1, type=float, required=False)
-parser.add_argument("-T", "--time", help="time before stopping",choices= range(60,1801), nargs=1, type=int, default= 300, required=False)
+parser.add_argument("-T", "--time", help="time before stopping",choices= range(60,1801), type=int, default= 300, required=False)
 parser.parse_args()
 
 def cloud_setup():
@@ -208,8 +208,6 @@ def send_command_to_instance(instance, instance_no, commands):
         Parameters={
             'commands': commands
         },
-
-
     )
     print("Commands sent to Instance-" + str(instance_no) + ".")
 
@@ -232,48 +230,53 @@ def get_command_output(instances):
                 Details=True
             )
             # print(response)
-            status = response['CommandInvocations'][0]['Status']
-            if status == "Success":
-                output = response['CommandInvocations'][0]['CommandPlugins'][0]['Output']
-                wait = False
-            elif status == "Failed":
-                wait = False
-                print("Instance-" + str(count) + " Failed to run commands.")
-            elif status =='TimedOut':
-                wait = False
-                print("Instance-" + str(count) + " Timed Out when running commands.")
-                
-            count += 1
+            cinvs = response['CommandInvocations']
+            if (cinvs):
+                status = response['CommandInvocations'][0]['Status']
+                if status == "Success":
+                    output = response['CommandInvocations'][0]['CommandPlugins'][0]['Output']
+                    wait = False
+                elif status == "Failed":
+                    wait = False
+                    print("Instance-" + str(count) + " Failed to run commands.")
+                elif status =='TimedOut':
+                    wait = False
+                    print("Instance-" + str(count) + " Timed Out when running commands.")
+                    
+                count += 1
         
     
     return output
 
-def split_work(number_of_vms, time_limits, confidence):
+def split_work(number_of_vms, time_limit, confidence):
 
-    time_limit = time_limits[0]
-    
+    ranges = []
     # how many values its able to check per second
     performance = 150000
-    
+    print(confidence)
     # number of checks an instance can perform in given time
     total_instance_checks = performance * time_limit
-    
-    ranges = []
     for i in range(number_of_vms):
-        check_range = {'Start':i*total_instance_checks, 'Stop': (i+1) * total_instance_checks}
-        ranges.append(check_range)
+        if confidence == 1:
+            check_range = {'Start':i*total_instance_checks, 'Stop': (i+1) * total_instance_checks}
+            ranges.append(check_range)
+            
+        else:
+            #TODO: The confidence inetrval logic
+            total_no_checks = performance * time_limit * number_of_vms
+            
+
 
     return ranges
 
 
-def generate_commands(number_of_vms, time_limit, difficulty):
+def generate_commands(number_of_vms, time_limit, difficulty, confidence):
 
     commands = []
-    ranges = split_work(number_of_vms, time_limit)
+    ranges = split_work(number_of_vms, time_limit, confidence)
 
     for i in range(number_of_vms):
-        command = f"python3 /home/ec2-user/proof_of_work.py -T {time_limit[0]} -D {difficulty} -N {number_of_vms} -b {ranges[i]['Start']} -e {ranges[i]['Stop']}"
-        # print(command)
+        command = f"python3 /home/ec2-user/proof_of_work.py -T {time_limit} -L {confidence} -D {difficulty} -N {number_of_vms} -b {ranges[i]['Start']} -e {ranges[i]['Stop']}"
         commands.append(command)
 
     return commands
@@ -302,9 +305,8 @@ def main(args):
 
     instances = start_instances(number_of_vms)
     # divides work here
-    commands = generate_commands(number_of_vms, time_limit, difficulty)
+    commands = generate_commands(number_of_vms, time_limit, difficulty, confidence)
     send_all_commands(instances, commands) 
-    time.sleep(300)
     print(get_command_output(instances))
     terminate_instances(instances)
 

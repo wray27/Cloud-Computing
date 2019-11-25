@@ -206,8 +206,7 @@ def send_command_to_instance(instance, instance_no, commands):
         DocumentName='AWS-RunShellScript',
         Comment="python test",
         Parameters={
-            'commands': commands, 
-            'workingDirectory':['~']
+            'commands': commands
         },
 
 
@@ -249,20 +248,20 @@ def get_command_output(instances):
     
     return output
 
-def split_work(number_of_vms, time_limit):
+def split_work(number_of_vms, time_limits, confidence):
 
+    time_limit = time_limits[0]
+    
     # how many values its able to check per second
     performance = 150000
-
+    
     # number of checks an instance can perform in given time
     total_instance_checks = performance * time_limit
-
+    
     ranges = []
-
     for i in range(number_of_vms):
         check_range = {'Start':i*total_instance_checks, 'Stop': (i+1) * total_instance_checks}
         ranges.append(check_range)
-
 
     return ranges
 
@@ -273,7 +272,8 @@ def generate_commands(number_of_vms, time_limit, difficulty):
     ranges = split_work(number_of_vms, time_limit)
 
     for i in range(number_of_vms):
-        command = f"python3 /home/ec2-user/proof_of_work.py -t {time_limit} -D {difficulty} -N {number_of_vms} -b {ranges[i]['Start']} -e {ranges[i]['Stop']}"
+        command = f"python3 /home/ec2-user/proof_of_work.py -T {time_limit[0]} -D {difficulty} -N {number_of_vms} -b {ranges[i]['Start']} -e {ranges[i]['Stop']}"
+        # print(command)
         commands.append(command)
 
     return commands
@@ -293,34 +293,20 @@ def main(args):
     time_limit = args.time
     difficulty = args.difficulty
 
-    
+    if number_of_vms == 0:
+        proof_of_work.main(args)
+        return
 
-    # if number_of_vms == 0:
-    #     proof_of_work.main(args)
-    #     return
+    if not os.path.exists('aw16997-keypair.pem'):
+        cloud_setup()
 
-    # if not os.path.exists('aw16997-keypair.pem'):
-    #     cloud_setup()
-
-    # instances = start_instances(number_of_vms)
-    # # #TODO: want a function that divides work here
-    # # commands = [f"python3 /home/ec2-user/proof_of_work.py -N {number_of_vms}"]
-    # commands = generate_commands(number_of_vms, time_limit, difficulty)
-    # send_all_commands(instances, commands)
-
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        t1 = executor.submit(countdown(time_limit))
-        t2 = executor.submit()
-        return_value = future.result()
-        print(return_value)
-
-    
-    t1 = Thread(target=countdown(11))
-    t2 = Thread(target=time.sleep(11))
-    t1.start() #Calls first function
-    t2.start()
-    # # print(get_command_output(instances))
-    # # terminate_instances(instances)
+    instances = start_instances(number_of_vms)
+    # divides work here
+    commands = generate_commands(number_of_vms, time_limit, difficulty)
+    send_all_commands(instances, commands) 
+    time.sleep(300)
+    print(get_command_output(instances))
+    terminate_instances(instances)
 
 if __name__ == "__main__":
     main(parser.parse_args())

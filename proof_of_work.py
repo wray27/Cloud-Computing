@@ -4,6 +4,7 @@ import time
 import getopt, sys
 import os
 import argparse
+import threading
 
 
 parser = argparse.ArgumentParser(
@@ -21,6 +22,24 @@ parser.add_argument("-l", "--local", help="run the code on the local machine usi
 parser.add_argument("-p", "--performance", help="runs a performance test", type=bool, default=False, required=False)
 parser.parse_args()
 
+def split_work(number_of_vms, time_limit, confidence, speed):
+    
+    ranges = []
+    # how many values its able to check per second
+    performance = speed
+    # print(confidence)
+    # number of checks an instance can perform in given time
+    total_instance_checks = performance * time_limit
+    for i in range(number_of_vms):
+        if confidence == 1:
+            check_range = {'Start':i*total_instance_checks, 'Stop': (i+1) * total_instance_checks}
+            ranges.append(check_range)
+            
+        else:
+            #TODO: The confidence inetrval logic
+            total_no_checks = performance * time_limit * number_of_vms
+            
+    return ranges
 
 def hash_gen(nonce):
     
@@ -92,7 +111,7 @@ def performance_test(time_limit=300):
     for i in range(sys.maxsize):
         end_time = time.time()
         elapsed_time = end_time - start_time
-        golden = golden_nonce(255, hash_gen(i))
+        golden = golden_nonce(256, hash_gen(i))
         
         
         if golden: 

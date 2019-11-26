@@ -248,32 +248,12 @@ def get_command_output(instances):
     
     return output
 
-def split_work(number_of_vms, time_limit, confidence):
-
-    ranges = []
-    # how many values its able to check per second
-    performance = 150000
-    print(confidence)
-    # number of checks an instance can perform in given time
-    total_instance_checks = performance * time_limit
-    for i in range(number_of_vms):
-        if confidence == 1:
-            check_range = {'Start':i*total_instance_checks, 'Stop': (i+1) * total_instance_checks}
-            ranges.append(check_range)
-            
-        else:
-            #TODO: The confidence inetrval logic
-            total_no_checks = performance * time_limit * number_of_vms
-            
-
-
-    return ranges
 
 
 def generate_commands(number_of_vms, time_limit, difficulty, confidence):
 
     commands = []
-    ranges = split_work(number_of_vms, time_limit, confidence)
+    ranges = proof_of_work.split_work(number_of_vms, time_limit, confidence, speed=150000)
 
     for i in range(number_of_vms):
         command = f"python3 /home/ec2-user/proof_of_work.py -T {time_limit} -L {confidence} -D {difficulty} -N {number_of_vms} -b {ranges[i]['Start']} -e {ranges[i]['Stop']}"

@@ -5,6 +5,7 @@ import getopt, sys
 import os
 import argparse
 from multiprocessing import Process, Queue
+import numpy as np
 
 
 parser = argparse.ArgumentParser(
@@ -14,31 +15,23 @@ parser = argparse.ArgumentParser(
     
 parser.add_argument("-N", "--number-of-vms", help="number of vms to run the code, if running on local machine its the number of threads", choices=range(51), required=False, type=int, default=0)
 parser.add_argument("-D", "--difficulty", help="difficulty",choices=range(256), type=int, default=0, required=False)
-parser.add_argument("-L", "--confidence", help="confidence level between 0 and 1", default=1, type=float, required=False)
 parser.add_argument("-T", "--time", help="time before stopping",choices= range(60,1801), type=int, default= 300, required=False)
+parser.add_argument("-P", "--performance", help="runs a performance test", action='store_true', default=False, required=False)
 parser.add_argument("-b", "--start", help="value to start checking", type=int, default= 0, required=False)
 parser.add_argument("-e", "--stop", help="value to stop checking", type=int, default= 0, required=False)
 parser.add_argument("-l", "--local", help="run the code on the local machine using threads", action='store_true', default=False, required=False)
-parser.add_argument("-p", "--performance", help="runs a performance test", type=bool, default=False, required=False)
 parser.parse_args()
 
-def split_work(number_of_vms, time_limit, confidence, speed, start_val=0):
-    
+def split_work(number_of_vms, time_limit, speed, start_val=0):
     ranges = []
     # how many values its able to check per second
     performance = speed
-    # print(confidence)
     # number of checks an instance can perform in given time
     total_instance_checks = performance * time_limit
     for i in range(number_of_vms):
-        if confidence == 1:
-            check_range = {'Start':i*total_instance_checks + start_val, 'Stop': (i+1) * total_instance_checks + start_val}
-            ranges.append(check_range)
-            
-        else:
-            #TODO: The confidence inetrval logic
-            total_no_checks = performance * time_limit * number_of_vms
-            
+        check_range = {'Start':i*total_instance_checks + start_val, 'Stop': (i+1) * total_instance_checks + start_val}
+        ranges.append(check_range)
+              
     return ranges
 
 def hash_gen(nonce):
@@ -105,9 +98,9 @@ def local_nonce_test():
     print(proof_of_work)
     # print()
 
-def threaded_nonce_check(number_of_threads, time_limit, difficulty, confidence, start_val=0):
+def threaded_nonce_check(number_of_threads, time_limit, difficulty, start_val=0):
      
-    ranges = split_work(number_of_threads, time_limit, confidence, speed=150000, start_val=0)
+    ranges = split_work(number_of_threads, time_limit,  speed=160000, start_val=0)
     processes =[]
     wait = True
     result = Queue()
@@ -126,22 +119,12 @@ def threaded_nonce_check(number_of_threads, time_limit, difficulty, confidence, 
                        processes[j].terminate()
     
     print(result.get())
-              
-
-    
-    
-
-
-
-    
-
 
 def performance_test(time_limit=300):
     golden = False
     number_checked = 0
-    print("running performance test...")
+    # print("running performance test...")
     start_time = time.time()
-    performance = performance_test()
     for i in range(sys.maxsize):
         end_time = time.time()
         elapsed_time = end_time - start_time
@@ -157,29 +140,27 @@ def performance_test(time_limit=300):
             break
         
     performance = number_checked / time_limit
-    print("hash rate on local machine is approxiamtely ", performance, "per second")
     return performance
     
 def main(args):
     number_of_vms = args.number_of_vms
-    confidence = args.confidence
     time= args.time
     difficulty = args.difficulty
     start = args.start
     stop = args.stop
     performance = args.performance
     local = args.local
-    
-    # runs a performanc etest which calculate how many nonces can be checked per seconfd on a machine
+
+    # runs a performance test which calculate how many nonces can be checked per second on a machine
     if performance: 
-        performance_test()
+        print(performance_test())
         return 
    
     # code is intended to run on the cloud but obviously can be run from local machine to
     # this is done by settin gth e local parameter
     if local:
-        print("running on local machine.")
-        threaded_nonce_check(number_of_threads= number_of_vms, time_limit=time, difficulty=difficulty,confidence = confidence, start_val=0)
+        # print("running on local machine.")
+        threaded_nonce_check(number_of_threads= number_of_vms, time_limit=time, difficulty=difficulty, start_val=0)
     else:
         nonce = check_nonce_in_range(start, stop, time, difficulty)
         print(nonce)

@@ -8,6 +8,7 @@ import argparse
 import proof_of_work
 from threading import Thread
 import concurrent.futures
+from scipy.stats import binom
 
 parser = argparse.ArgumentParser(
         description="Finding the golden nonce in the cloud.",
@@ -17,6 +18,8 @@ parser.add_argument("-N", "--number-of-vms", help="number of vms to run the code
 parser.add_argument("-D", "--difficulty", help="difficulty",choices=range(256), type=int, default=0, required=False)
 parser.add_argument("-L", "--confidence", help="confidence level between 0 and 1", default=1, type=float, required=False)
 parser.add_argument("-T", "--time", help="time before stopping",choices= range(60,1801), type=int, default= 300, required=False)
+parser.add_argument("-P", "--performance", help="runs a performance test", action='store_true', default=False, required=False)
+
 parser.parse_args()
 
 def cloud_setup():
@@ -248,15 +251,25 @@ def get_command_output(instances):
     
     return output
 
+def calculate_desired_num_of_vms(difficulty, time_limit, confidence):
+    
+    # number of trials that can be performed by one vm in time given
+    total_trials = time_limit * 160000
+    p_golden = 1 /(2**(difficulty))
+    # expectation is set to one, giving us the expectation of trials
+    expected_no_trials  =  (1 / p_golden) * confidence
+    number_of_vms = expected_no_trials / total_trials
+    print(number_of_vms)
 
-
-def generate_commands(number_of_vms, time_limit, difficulty, confidence, start_val):
+def generate_commands(number_of_vms, time_limit, difficulty, performance_flag, start_val):
 
     commands = []
-    ranges = proof_of_work.split_work(number_of_vms, time_limit, confidence, speed=150000, start_instances=0)
+    ranges = proof_of_work.split_work(number_of_vms, time_limit, speed=150000, start_instances=0)
+    performance = ''
+    if performance_flag: performance = '-P'
 
     for i in range(number_of_vms):
-        command = f"python3 /home/ec2-user/proof_of_work.py -T {time_limit} -L {confidence} -D {difficulty} -N {number_of_vms} -b {ranges[i]['Start']} -e {ranges[i]['Stop']}"
+        command = f"python3 /home/ec2-user/proof_of_work.py {performance} -T {time_limit} -D {difficulty} -N {number_of_vms} -b {ranges[i]['Start']} -e {ranges[i]['Stop']}"
         commands.append(command)
 
     return commands
@@ -275,22 +288,20 @@ def main(args):
     confidence = args.confidence
     time_limit = args.time
     difficulty = args.difficulty
-
-    if number_of_vms == 0:
-        proof_of_work.main(args)
-        return
+    performance = args.performance
 
     if not os.path.exists('aw16997-keypair.pem'):
         cloud_setup()
 
+    if performance: number_of_vms = 1
+    if number_of_vms == 0: number_of_vms = calculate_desired_num_of_vms(difficulty, time, confidence)
+    print(number_of_vms)
     instances = start_instances(number_of_vms)
     # divides work here
-    commands = generate_commands(number_of_vms, time_limit, difficulty, confidence)
+    commands = generate_commands(number_of_vms, time_limit, difficulty, performance)
     send_all_commands(instances, commands) 
     print(get_command_output(instances))
     terminate_instances(instances)
 
 if __name__ == "__main__":
     main(parser.parse_args())
-
-    

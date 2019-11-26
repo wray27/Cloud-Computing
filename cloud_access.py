@@ -250,10 +250,10 @@ def get_command_output(instances):
 
 
 
-def generate_commands(number_of_vms, time_limit, difficulty, confidence):
+def generate_commands(number_of_vms, time_limit, difficulty, confidence, start_val):
 
     commands = []
-    ranges = proof_of_work.split_work(number_of_vms, time_limit, confidence, speed=150000)
+    ranges = proof_of_work.split_work(number_of_vms, time_limit, confidence, speed=150000, start_instances=0)
 
     for i in range(number_of_vms):
         command = f"python3 /home/ec2-user/proof_of_work.py -T {time_limit} -L {confidence} -D {difficulty} -N {number_of_vms} -b {ranges[i]['Start']} -e {ranges[i]['Stop']}"

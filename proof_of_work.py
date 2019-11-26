@@ -4,7 +4,7 @@ import time
 import getopt, sys
 import os
 import argparse
-import threading
+from multiprocessing import Process, Queue
 
 
 parser = argparse.ArgumentParser(
@@ -12,17 +12,17 @@ parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     
-parser.add_argument("-N", "--number-of-vms", help="number of vms to run the code", choices=range(51), required=False, type=int, default=0)
+parser.add_argument("-N", "--number-of-vms", help="number of vms to run the code, if running on local machine its the number of threads", choices=range(51), required=False, type=int, default=0)
 parser.add_argument("-D", "--difficulty", help="difficulty",choices=range(256), type=int, default=0, required=False)
 parser.add_argument("-L", "--confidence", help="confidence level between 0 and 1", default=1, type=float, required=False)
 parser.add_argument("-T", "--time", help="time before stopping",choices= range(60,1801), type=int, default= 300, required=False)
 parser.add_argument("-b", "--start", help="value to start checking", type=int, default= 0, required=False)
 parser.add_argument("-e", "--stop", help="value to stop checking", type=int, default= 0, required=False)
-parser.add_argument("-l", "--local", help="run the code on the local machine using threads", type=bool, default=False, required=False)
+parser.add_argument("-l", "--local", help="run the code on the local machine using threads", action='store_true', default=False, required=False)
 parser.add_argument("-p", "--performance", help="runs a performance test", type=bool, default=False, required=False)
 parser.parse_args()
 
-def split_work(number_of_vms, time_limit, confidence, speed):
+def split_work(number_of_vms, time_limit, confidence, speed, start_val=0):
     
     ranges = []
     # how many values its able to check per second
@@ -32,7 +32,7 @@ def split_work(number_of_vms, time_limit, confidence, speed):
     total_instance_checks = performance * time_limit
     for i in range(number_of_vms):
         if confidence == 1:
-            check_range = {'Start':i*total_instance_checks, 'Stop': (i+1) * total_instance_checks}
+            check_range = {'Start':i*total_instance_checks + start_val, 'Stop': (i+1) * total_instance_checks + start_val}
             ranges.append(check_range)
             
         else:
@@ -91,6 +91,9 @@ def check_nonce_in_range(start, stop, time_limit, D):
         
 
     return nonce
+def threaded_nonce_check_in_range(start, stop, time_limit, D, result):
+    result.put(check_nonce_in_range(start, stop, time_limit, D))
+
     
 def local_nonce_test():
     
@@ -101,6 +104,37 @@ def local_nonce_test():
     print(end - start)
     print(proof_of_work)
     # print()
+
+def threaded_nonce_check(number_of_threads, time_limit, difficulty, confidence, start_val=0):
+     
+    ranges = split_work(number_of_threads, time_limit, confidence, speed=150000, start_val=0)
+    processes =[]
+    wait = True
+    result = Queue()
+    for i in range(number_of_threads):
+        print("Starting Process ", i)
+        processes.append(Process(target=threaded_nonce_check_in_range, args=(ranges[i]['Start'], ranges[i]['Stop'], time_limit, difficulty, result)))
+        processes[i].start()
+        
+    while wait:
+        # print("waiting")
+        for i in range(number_of_threads):
+            if not processes[i].is_alive():
+               wait = False
+               for j in range(number_of_threads):
+                   if not i == j:
+                       processes[j].terminate()
+    
+    print(result.get())
+              
+
+    
+    
+
+
+
+    
+
 
 def performance_test(time_limit=300):
     golden = False
@@ -145,6 +179,7 @@ def main(args):
     # this is done by settin gth e local parameter
     if local:
         print("running on local machine.")
+        threaded_nonce_check(number_of_threads= number_of_vms, time_limit=time, difficulty=difficulty,confidence = confidence, start_val=0)
     else:
         nonce = check_nonce_in_range(start, stop, time, difficulty)
         print(nonce)

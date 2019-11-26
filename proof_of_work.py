@@ -15,8 +15,10 @@ parser.add_argument("-N", "--number-of-vms", help="number of vms to run the code
 parser.add_argument("-D", "--difficulty", help="difficulty",choices=range(256), type=int, default=0, required=False)
 parser.add_argument("-L", "--confidence", help="confidence level between 0 and 1", default=1, type=float, required=False)
 parser.add_argument("-T", "--time", help="time before stopping",choices= range(60,1801), type=int, default= 300, required=False)
-parser.add_argument("-b", "--start", help="time before stopping", type=int, default= 0, required=False)
-parser.add_argument("-e", "--stop", help="time before stopping", type=int, default= 0, required=False)
+parser.add_argument("-b", "--start", help="value to start checking", type=int, default= 0, required=False)
+parser.add_argument("-e", "--stop", help="value to stop checking", type=int, default= 0, required=False)
+parser.add_argument("-l", "--local", help="run the code on the local machine using threads", type=bool, default=False, required=False)
+parser.add_argument("-p", "--performance", help="runs a performance test", type=bool, default=False, required=False)
 parser.parse_args()
 
 
@@ -84,7 +86,9 @@ def local_nonce_test():
 def performance_test(time_limit=300):
     golden = False
     number_checked = 0
+    print("running performance test...")
     start_time = time.time()
+    performance = performance_test()
     for i in range(sys.maxsize):
         end_time = time.time()
         elapsed_time = end_time - start_time
@@ -100,7 +104,7 @@ def performance_test(time_limit=300):
             break
         
     performance = number_checked / time_limit
-    print(performance)
+    print("hash rate on local machine is approxiamtely ", performance, "per second")
     return performance
     
 def main(args):
@@ -110,15 +114,19 @@ def main(args):
     difficulty = args.difficulty
     start = args.start
     stop = args.stop
+    performance = args.performance
+    local = args.local
     
+    # runs a performanc etest which calculate how many nonces can be checked per seconfd on a machine
+    if performance: 
+        performance_test()
+        return 
+   
     # code is intended to run on the cloud but obviously can be run from local machine to
-    # this assumes number of vms = 0
-    if number_of_vms == 0:
-        print("Running on local machine...")
-        performance = performance_test()
-        print("hash rate on local machine is approxiamtely ", performance, "per second")
+    # this is done by settin gth e local parameter
+    if local:
+        print("running on local machine.")
     else:
-        # performance_test(time_limit=time)
         nonce = check_nonce_in_range(start, stop, time, difficulty)
         print(nonce)
  

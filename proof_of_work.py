@@ -5,7 +5,7 @@ import getopt, sys
 import os
 import argparse
 from multiprocessing import Process, Queue
-import numpy as np
+
 
 
 parser = argparse.ArgumentParser(
@@ -14,8 +14,8 @@ parser = argparse.ArgumentParser(
     )
     
 parser.add_argument("-N", "--number-of-vms", help="number of vms to run the code, if running on local machine its the number of threads", choices=range(51), required=False, type=int, default=0)
-parser.add_argument("-D", "--difficulty", help="difficulty",choices=range(256), type=int, default=0, required=False)
-parser.add_argument("-T", "--time", help="time before stopping",choices= range(60,1801), type=int, default= 300, required=False)
+parser.add_argument("-D", "--difficulty", help="difficulty", type=int, default=0, required=False)
+parser.add_argument("-T", "--time", help="time before stopping", type=int, default= 300, required=False)
 parser.add_argument("-P", "--performance", help="runs a performance test", action='store_true', default=False, required=False)
 parser.add_argument("-b", "--start", help="value to start checking", type=int, default= 0, required=False)
 parser.add_argument("-e", "--stop", help="value to stop checking", type=int, default= 0, required=False)
@@ -98,16 +98,18 @@ def local_nonce_test():
     print(proof_of_work)
     # print()
 
-def threaded_nonce_check(number_of_threads, time_limit, difficulty, start_val=0):
+def threaded_nonce_check(number_of_threads, time_limit, difficulty, start_val=0, speed=160000):
      
-    ranges = split_work(number_of_threads, time_limit,  speed=160000, start_val=0)
-    processes =[]
+    ranges = split_work(number_of_threads, time_limit,  speed, start_val=0)
+    processes = []
     wait = True
     result = Queue()
     for i in range(number_of_threads):
-        print("Starting Process ", i)
         processes.append(Process(target=threaded_nonce_check_in_range, args=(ranges[i]['Start'], ranges[i]['Stop'], time_limit, difficulty, result)))
         processes[i].start()
+      
+
+        print("Starting Process ", i)
         
     while wait:
         # print("waiting")
@@ -118,7 +120,7 @@ def threaded_nonce_check(number_of_threads, time_limit, difficulty, start_val=0)
                    if not i == j:
                        processes[j].terminate()
     
-    print(result.get())
+    return result.get()
 
 def performance_test(time_limit=300):
     golden = False
@@ -141,6 +143,34 @@ def performance_test(time_limit=300):
         
     performance = number_checked / time_limit
     return performance
+
+def performance_test2(time_limit=300):
+    golden = False
+    number_checked = 0
+    # print("running performance test...")
+    start_time = time.time()
+    
+    golden = golden_nonce(256, hash_gen(0))
+    end_time = time.time()
+    performance = end_time - start_time
+    
+  
+    
+    return performance
+
+def performance_test3():
+    golden = False
+    number_checked = 0
+    # print("running performance test...")
+    start_time = time.time()
+    check_nonce_in_range(0, 100000, time_limit=300, D=256)
+    end_time = time.time()
+    performance = end_time - start_time
+    
+  
+    
+    return performance
+    
     
 def main(args):
     number_of_vms = args.number_of_vms
@@ -153,14 +183,15 @@ def main(args):
 
     # runs a performance test which calculate how many nonces can be checked per second on a machine
     if performance: 
-        print(performance_test())
+        print(performance_test3())
         return 
    
     # code is intended to run on the cloud but obviously can be run from local machine to
     # this is done by settin gth e local parameter
     if local:
-        # print("running on local machine.")
-        threaded_nonce_check(number_of_threads= number_of_vms, time_limit=time, difficulty=difficulty, start_val=0)
+        print("running on local machine.")
+        output = threaded_nonce_check(number_of_threads= number_of_vms, time_limit=time, difficulty=difficulty, start_val=0)
+        print(output)
     else:
         nonce = check_nonce_in_range(start, stop, time, difficulty)
         print(nonce)

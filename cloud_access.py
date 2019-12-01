@@ -6,9 +6,7 @@ import sys
 import time
 import argparse
 import proof_of_work
-from threading import Thread
-import concurrent.futures
-from scipy.stats import binom
+import math
 
 parser = argparse.ArgumentParser(
         description="Finding the golden nonce in the cloud.",
@@ -17,7 +15,7 @@ parser = argparse.ArgumentParser(
 parser.add_argument("-N", "--number-of-vms", help="number of vms to run the code", choices=range(51), required=False, type=int, default=0)
 parser.add_argument("-D", "--difficulty", help="difficulty",choices=range(256), type=int, default=0, required=False)
 parser.add_argument("-L", "--confidence", help="confidence level between 0 and 1", default=1, type=float, required=False)
-parser.add_argument("-T", "--time", help="time before stopping",choices= range(60,1801), type=int, default= 300, required=False)
+parser.add_argument("-T", "--time", help="time before stopping", type=int, default= 300, required=False)
 parser.add_argument("-P", "--performance", help="runs a performance test", action='store_true', default=False, required=False)
 
 parser.parse_args()
@@ -224,9 +222,9 @@ def get_command_output(instances):
     # returns as soon as the first vm recieves an output
     client = boto3.client('ssm')
     output = []
-    count = 0
     wait = True
     while wait:
+        count = 0
         for i in instances:
             response = client.list_command_invocations(
                 InstanceId=i.instance_id,
@@ -240,6 +238,7 @@ def get_command_output(instances):
                     output = response['CommandInvocations'][0]['CommandPlugins'][0]['Output']
                     wait = False
                 elif status == "Failed":
+                    output = response['CommandInvocations'][0]['CommandPlugins'][0]['Output']
                     wait = False
                     print("Instance-" + str(count) + " Failed to run commands.")
                 elif status =='TimedOut':
@@ -259,17 +258,19 @@ def calculate_desired_num_of_vms(difficulty, time_limit, confidence):
     # expectation is set to one, giving us the expectation of trials
     expected_no_trials  =  (1 / p_golden) * confidence
     number_of_vms = expected_no_trials / total_trials
-    print(number_of_vms)
+    number_of_vms = math.ceil(number_of_vms)
+    return number_of_vms
+    
 
-def generate_commands(number_of_vms, time_limit, difficulty, performance_flag, start_val):
+def generate_commands(number_of_vms, time_limit, difficulty, performance_flag, start_val=0):
 
     commands = []
-    ranges = proof_of_work.split_work(number_of_vms, time_limit, speed=150000, start_instances=0)
+    ranges = proof_of_work.split_work(number_of_vms, time_limit, speed=150000, start_val=0)
     performance = ''
-    if performance_flag: performance = '-P'
+    if performance_flag: performance = ' -P '
 
     for i in range(number_of_vms):
-        command = f"python3 /home/ec2-user/proof_of_work.py {performance} -T {time_limit} -D {difficulty} -N {number_of_vms} -b {ranges[i]['Start']} -e {ranges[i]['Stop']}"
+        command = f"python3 /home/ec2-user/proof_of_work.py {performance}-T {time_limit} -D {difficulty} -N {number_of_vms} -b {ranges[i]['Start']} -e {ranges[i]['Stop']}"
         commands.append(command)
 
     return commands
@@ -283,6 +284,17 @@ def countdown(t):
         t -= 1
     print('Time limit has been reached. No golden nonce has been found.')
 
+
+def run_experiment(number_of_vms, time_limit, difficulty, performance_flag=False):
+    instances = start_instances(number_of_vms)
+    # divides work here
+    commands = generate_commands(number_of_vms, time_limit, difficulty, performance_flag=performance_flag)
+    send_all_commands(instances, commands) 
+    output = get_command_output(instances)
+    terminate_instances(instances)
+    return output
+
+
 def main(args):
     number_of_vms = args.number_of_vms
     confidence = args.confidence
@@ -293,14 +305,20 @@ def main(args):
     if not os.path.exists('aw16997-keypair.pem'):
         cloud_setup()
 
-    if performance: number_of_vms = 1
-    if number_of_vms == 0: number_of_vms = calculate_desired_num_of_vms(difficulty, time, confidence)
-    print(number_of_vms)
+    if number_of_vms == 0:
+        number_of_vms = calculate_desired_num_of_vms(difficulty, time_limit, confidence)
+        print(f"automatically chosen {number_of_vms} virtual machine(s) that will yield a golden nonce within {time_limit} seconds with {confidence*100}% confidence")
+    
+    if performance: 
+        print("number of virtual machines has been set to 1 for performance test")
+        number_of_vms = 1
+    
     instances = start_instances(number_of_vms)
     # divides work here
     commands = generate_commands(number_of_vms, time_limit, difficulty, performance)
     send_all_commands(instances, commands) 
-    print(get_command_output(instances))
+    output = get_command_output(instances)
+    print(output)
     terminate_instances(instances)
 
 if __name__ == "__main__":

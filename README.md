@@ -23,11 +23,13 @@ Default region name [None]: eu-west-2
 Default output format [None]: json
 ```
 
-## Running the Code
+## Running The Code
+
+* When running the code for the first time a keypair will be created automatically, as well as an AWS IAM role, group and other security settings
 
 * Running the code in the cloud can be done by running the cloud_access.py code
 
-*  A table of command line options are given below
+* A table of command line options are given below
 
 <!-- parser.add_argument("-N", "--number-of-vms", help="number of vms to run the code", choices=range(51), required=False, type=int, default=0)
 parser.add_argument("-D", "--difficulty", help="difficulty",choices=range(256), type=int, default=0, required=False)
@@ -48,3 +50,11 @@ parser.add_argument("-P", "--performance", help="runs a performance test", actio
 
 ``` 
 $ python cloud_access.py -D 24 -T 200 -N 4
+```
+## Cleanup
+
+* To delete the key pair and AWS other configurations run
+
+```
+$ . ./clean.sh
+```

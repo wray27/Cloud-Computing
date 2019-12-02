@@ -275,16 +275,6 @@ def generate_commands(number_of_vms, time_limit, difficulty, performance_flag, s
 
     return commands
 
-def countdown(t):
-    while t:
-        mins, secs = divmod(t, 60)
-        timeformat = '{:02d}:{:02d}s'.format(mins, secs)
-        print(timeformat,"left until instances are terminated.", end='\r')
-        time.sleep(1)
-        t -= 1
-    print('Time limit has been reached. No golden nonce has been found.')
-
-
 def run_experiment(number_of_vms, time_limit, difficulty, performance_flag=False):
     instances = start_instances(number_of_vms)
     # divides work here
@@ -313,13 +303,7 @@ def main(args):
         print("number of virtual machines has been set to 1 for performance test")
         number_of_vms = 1
     
-    instances = start_instances(number_of_vms)
-    # divides work here
-    commands = generate_commands(number_of_vms, time_limit, difficulty, performance)
-    send_all_commands(instances, commands) 
-    output = get_command_output(instances)
-    print(output)
-    terminate_instances(instances)
+    print(run_experiment(number_of_vms, time_limit, difficulty, performance))
 
 if __name__ == "__main__":
     main(parser.parse_args())

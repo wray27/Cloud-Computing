@@ -40,10 +40,10 @@ parser.add_argument("-P", "--performance", help="runs a performance test", actio
 | Short Argument| Long Argument|Description|Type |Required|
 |:-------------|:-------------|:------------|:---------|:----------|
 |-N|--number-of-vms  |Allows a user to specify the number of VMs to run the code. By default is 0, and CND will automatically calculate a desire number of virtual machines to use.|int| No|
-|-D|--difficulty|Allows a user to set the difficulty level for the proof-of-work, difficulty is the number of leading bits that are zero in the returned hash value.| int   |Yes|
-|-L|--confidence|A user can set the desired confidence level, between 0 and 1 of whether a golden nonce can be found in time T| float    | No    |
-|-T|--time|Time limit given to find a golden nonce before all Virtual machines are terminated. Default value is 300 seconds.|int|No|
-|-P|--performance|Runs a performance test|boolean|No|
+|-D|--difficulty  |Allows a user to set the difficulty level for the proof-of-work, difficulty is the number of leading bits that are zero in the returned hash value.| int   |Yes|
+|-L|--confidence |A user can set the desired confidence level, between 0 and 1 of whether a golden nonce can be found in time T| float    | No    |
+|-T|--time  |Time limit given to find a golden nonce before all Virtual machines are terminated. Default value is 300 seconds.|int|No|
+|-P|--performance  |Runs a performance test|boolean|No|
 
 *  An example of how the code is ran in the terminal is shown below. The example will set the difficulty level to 24 and the time limit to 200 and splut the work over 4 virtual machines
 

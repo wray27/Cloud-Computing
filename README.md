@@ -53,7 +53,7 @@ $ python cloud_access.py -D 24 -T 200 -N 4
 ```
 ## Cleanup
 
-* To delete the key pair and AWS other configurations run
+* To delete the key pair and other AWS configurations run the clean.sh script
 
 ```
 $ . ./clean.sh

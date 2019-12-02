@@ -31,11 +31,11 @@ parser.add_argument("-L", "--confidence", help="confidence level between 0 and 1
 parser.add_argument("-T", "--time", help="time before stopping", type=int, default= 300, required=False)
 parser.add_argument("-P", "--performance", help="runs a performance test", action='store_true', default=False, required=False) -->
 
-| Short Argument | Long Argument  | Description  | Type | Required|
-| :-------------: |:-------------: |: ------------:|:---------: |:----------:|
-| -N             | --number-of-vms  | Allows a user to specify the number of VMs to run the code. By default is 0, and will autimatically calculate a desire number of virtual machines to use.     | int   | No        |
-| col 2 is       | centered       |   $12        |      |         |
-| zebra stripes  | are neat       |    $1        |      |         |
+| Short Argument| Long Argument|Description|Type |Required|
+|:-------------:|:-------------:|:------------:|:---------:|:----------:|
+|-N|--number-of-vms|Allows a user to specify the number of VMs to run the code. By default is 0, and CND will automatically calculate a desire number of virtual machines to use.|int| No|
+| col 2 is       | centered       |   $12        |  x    |No    |
+| zebra stripes  | are neat       |    $1        |   y   | No       |
 
 
 ``` 

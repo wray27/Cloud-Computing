@@ -1,7 +1,7 @@
 Horizontal Scaling for an Embarrassingly Parallel Task: Blockchain Proof-of-Work in the Cloud
 ===============
 
-The Cloud Nonce Discovery (CND) system,  utilizes horizontal scaling hosted by Amazon Web Service's (AWS) Elastic Compute Cloud (EC2) for a parallel computational task. The computational task is to compute a Blockchain proof-of-work.
+The Cloud Nonce Discovery (CND) system,  utilizes horizontal scaling hosted by Amazon Web Service's (AWS) Elastic Compute Cloud (EC2) for a parallel computational task. The computational task is to compute the proof-of-work for a Blockchain.
 ![](readme.gif)
 ## Background
 

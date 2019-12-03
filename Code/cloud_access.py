@@ -284,6 +284,23 @@ def run_experiment(number_of_vms, time_limit, difficulty, performance_flag=False
     terminate_instances(instances)
     return output
 
+def run_multiple_experiments(number_of_vms, time_limit, difficulty, performance_flag=False):
+    instances = start_instances(number_of_vms)
+    # divides work here
+    result = []
+    for d in range(difficulty):
+        print(d+1, 'Difficulty Checked.')
+        try:
+            commands = generate_commands(number_of_vms, time_limit, d, performance_flag=performance_flag)
+            send_all_commands(instances, commands) 
+            output = get_command_output(instances)
+            int_result = float(output.strip("[]\n").split(",", 1)[1])
+            result.append(output)
+        except:
+            result.append(None)
+
+    terminate_instances(instances)
+    return result
 
 def main(args):
     number_of_vms = args.number_of_vms

@@ -17,7 +17,7 @@ def experiment2a():
             print(d+1, "difficulty level checked")
  
     x = np.linspace(1, difficulty, difficulty)
-    plt.plot(x, result)
+    plt.plot(x, result, linestyle='-', marker='o')
 
     plt.xlabel('Difficulty')
     plt.ylabel('Runtime (seconds)')
@@ -44,10 +44,11 @@ def experiment2b():
             int_result = float(string.strip("[]\n").split(",", 1)[1])
             result.append(int_result)
         except:
-            result.append(np.nan)
+            result.append(None)
  
     x = np.linspace(0, difficulty, difficulty)
-    plt.plot(x, result)
+    plt.plot(x, result, linestyle='-', marker='o')
+    
 
     plt.xlabel('Difficulty')
     plt.ylabel('Runtime (seconds)')
@@ -88,7 +89,7 @@ def experiment3():
     x = np.linspace(0, difficulty, difficulty)
 
     for i in range(threads):
-        plt.plot(x, y[i], label=f"{i+1} thread(s)")
+        plt.plot(x, y[i], label=f"{i+1} thread(s)", linestyle='-', marker='o')
         
 
     plt.xlabel('Difficulty')
@@ -116,10 +117,10 @@ def experiment4():
             int_result = float(string.strip("[]\n").split(",", 1)[1])
             result.append(int_result)
         except:
-            result.append(np.nan)
+            result.append(None)
  
     x = np.linspace(1, total, total)
-    plt.plot(x, result)
+    plt.plot(x, result, linestyle='-', marker='o')
 
     plt.xlabel('Number of Virtual Machines')
     plt.ylabel('Runtime (seconds)')
@@ -141,16 +142,20 @@ def experiment5():
     total = 16
     difficulty = 25
     for d in range(difficulty):
-        try:
-            string = cloud_access.run_experiment(16,time_limit, d)
-            print(string)
-            int_result = float(string.strip("[]\n").split(",", 1)[1])
-            result.append(int_result)
-        except:
-            result.append(np.nan)
+        
+        if d > 19:
+            try:
+                string = cloud_access.run_experiment(16,time_limit, d)
+                print(string)
+                int_result = float(string.strip("[]\n").split(",", 1)[1])
+                result.append(int_result)
+            except:
+                result.append(None)
+        else:
+            result.append(0.01)
  
     x = np.linspace(0, difficulty, difficulty)
-    plt.plot(x, result)
+    plt.plot(x, result, linestyle='-', marker='o')
 
     plt.xlabel('Difficulty')
     plt.ylabel('Runtime (seconds)')
@@ -166,7 +171,7 @@ def experiment5():
 # UNCOMMENT an experiment to run it
 # experiment1()
 # experiment2a()
-experiment2b()
+# experiment2b()
 # experiment3()
 # experiment4()
-# experiment5()
+experiment5()

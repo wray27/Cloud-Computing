@@ -8,17 +8,7 @@ import argparse
 import proof_of_work
 import math
 
-parser = argparse.ArgumentParser(
-        description="Finding the golden nonce in the cloud.",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
-parser.add_argument("-N", "--number-of-vms", help="number of vms to run the code", choices=range(51), required=False, type=int, default=0)
-parser.add_argument("-D", "--difficulty", help="difficulty",choices=range(256), type=int, default=0, required=False)
-parser.add_argument("-L", "--confidence", help="confidence level between 0 and 1", default=1, type=float, required=False)
-parser.add_argument("-T", "--time", help="time before stopping", type=int, default= 300, required=False)
-parser.add_argument("-P", "--performance", help="runs a performance test", action='store_true', default=False, required=False)
 
-parser.parse_args()
 
 def cloud_setup():
     iam = boto3.client('iam')
@@ -323,4 +313,15 @@ def main(args):
     print(run_experiment(number_of_vms, time_limit, difficulty, performance))
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="Finding the golden nonce in the cloud.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument("-N", "--number-of-vms", help="number of vms to run the code", choices=range(51), required=False, type=int, default=0)
+    parser.add_argument("-D", "--difficulty", help="difficulty",choices=range(256), type=int, default=0, required=False)
+    parser.add_argument("-L", "--confidence", help="confidence level between 0 and 1", default=1, type=float, required=False)
+    parser.add_argument("-T", "--time", help="time before stopping", type=int, default= 300, required=False)
+    parser.add_argument("-P", "--performance", help="runs a performance test", action='store_true', default=False, required=False)
+
+    parser.parse_args()
     main(parser.parse_args())

@@ -8,19 +8,6 @@ from multiprocessing import Process, Queue
 
 
 
-parser = argparse.ArgumentParser(
-        description="Finding the golden nonce in the cloud.",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
-    
-parser.add_argument("-N", "--number-of-vms", help="number of vms to run the code, if running on local machine its the number of threads", choices=range(51), required=False, type=int, default=0)
-parser.add_argument("-D", "--difficulty", help="difficulty", type=int, default=0, required=False)
-parser.add_argument("-T", "--time", help="time before stopping", type=int, default= 300, required=False)
-parser.add_argument("-P", "--performance", help="runs a performance test", action='store_true', default=False, required=False)
-parser.add_argument("-b", "--start", help="value to start checking", type=int, default= 0, required=False)
-parser.add_argument("-e", "--stop", help="value to stop checking", type=int, default= 0, required=False)
-parser.add_argument("-l", "--local", help="run the code on the local machine using threads", action='store_true', default=False, required=False)
-parser.parse_args()
 
 def split_work(number_of_vms, time_limit, speed, start_val=0):
     ranges = []
@@ -198,5 +185,18 @@ def main(args):
  
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="Finding the golden nonce in the cloud.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument("-N", "--number-of-vms", help="number of vms to run the code, if running on local machine its the number of threads", choices=range(51), required=False, type=int, default=0)
+    parser.add_argument("-D", "--difficulty", help="difficulty", type=int, default=0, required=False)
+    parser.add_argument("-T", "--time", help="time before stopping", type=int, default= 300, required=False)
+    parser.add_argument("-P", "--performance", help="runs a performance test", action='store_true', default=False, required=False)
+    parser.add_argument("-b", "--start", help="value to start checking", type=int, default= 0, required=False)
+    parser.add_argument("-e", "--stop", help="value to stop checking", type=int, default= 0, required=False)
+    parser.add_argument("-l", "--local", help="run the code on the local machine using threads", action='store_true', default=False, required=False)
+    parser.parse_args()
+
     main(parser.parse_args())
 

@@ -2,7 +2,7 @@ Horizontal Scaling for an Embarrassingly Parallel Task: Blockchain Proof-of-Work
 ===============
 
 The Cloud Nonce Discovery (CND) system,  utilizes horizontal scaling hosted by Amazon Web Service's (AWS) Elastic Compute Cloud (EC2) for a parallel computational task. The computational task is to compute a Blockchain proof-of-work.
-
+![](readme.gif)
 ## Background
 
 In a Blockchain distributed ledger protocol, the proof-of-work stage consists of using a block of data and an arbitrary random 32-bit number that is only used once (nonce), as inputs to the SHA256 cryptographic hash function. The output of SHA256 is then used as input to the function again. The output is a hash value, a random number in the range 0 to 2^256-1. The aim of proof of work is to determine whether a nonce is golden. For a given data block, a nonce is golden if the hash value returned has a difficulty-level D leading number of bits which are zero.

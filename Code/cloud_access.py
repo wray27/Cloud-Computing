@@ -8,8 +8,10 @@ import argparse
 import proof_of_work
 import math
 
+# this file deals with configuring the cloud and starting instances sending commands to them 
+# and retrieving their output
 
-
+# configuring aws group, role and user settings and the port configurations for each instance
 def cloud_setup():
     iam = boto3.client('iam')
     client = boto3.client('ec2')
@@ -17,6 +19,7 @@ def cloud_setup():
     ip = get('https://api.ipify.org').text
     print('Your IP Address: ' + ip)
 
+    # creating a group for user/roles to be assigned to
     print("Starting setup...")
     print("Creating group...")  
     response = iam.create_group(
@@ -44,6 +47,8 @@ def cloud_setup():
     )
     print("Group created.")
 
+    # creating a role so that a user can assume
+    # role has full administrator 
     print("Creating identity access management role...")
     response = iam.create_role(
         RoleName='demo',
@@ -59,6 +64,7 @@ def cloud_setup():
     )
     print("Role created.")
 
+    # creating a profile for instances
     # there is a race condition for when an instance profile is created have to wait a set period
     # of time before you can create an instance with it
     print("Creating instance profile...")
@@ -74,6 +80,7 @@ def cloud_setup():
     time.sleep(20)
     print("Instance profile created.")
 
+    # creating security groups for the instances opens ports 
     print("Creating security group for instance inbound traffic...")
     response = client.create_security_group(
         Description='demo secutrity group for the coursework should allow all outside connections',
@@ -106,9 +113,9 @@ def cloud_setup():
             }
         ]
     )
-
     print("Security group created.")
 
+    # creating a key to ssh into instances saves it to the currwent directory
     key_name = 'aw16997-keypair'
     print("Creating Key Pair " + key_name + "...")
     outfile = open('aw16997-keypair.pem', 'w')
@@ -121,6 +128,7 @@ def cloud_setup():
 
     print("Setup complete.")
 
+# starts up aws instances
 def start_instances(no_instances=1):
     iam = boto3.client('iam')
     client = boto3.client('ec2')
@@ -128,6 +136,8 @@ def start_instances(no_instances=1):
     key_name = 'aw16997-keypair'
     print("Starting instances...")
     
+    # script that is run during the instance start up have to install python and start up an SSM agent to send 
+    # remote commands
     user_data_script = """#!/bin/bash
     cd /tmp
     sudo yum update
@@ -138,7 +148,7 @@ def start_instances(no_instances=1):
     sudo systemctl start amazon-ssm-agent
   
     """
-    
+    # creates instances
     instances = ec2.create_instances(
         ImageId = 'ami-00e8b55a2e841be44',
         MinCount = 1,
@@ -160,6 +170,7 @@ def start_instances(no_instances=1):
         
     )
 
+    # waits until each instance is up and copies proof of work to each instance 
     count = 0
     for instance in instances:
         print("Starting Instance-" + str(count)+ "...")
@@ -172,6 +183,7 @@ def start_instances(no_instances=1):
         os.system('scp -oUserKnownHostsFile=/dev/null -o "StrictHostKeyChecking no" -i %s %s ec2-user@ec2-%s.eu-west-2.compute.amazonaws.com:proof_of_work.py' % ('aw16997-keypair.pem', 'proof_of_work.py', ip_address))
         count += 1
     
+    # checking all instances are ok
     print("Checking status of all instances...")
     waiter = client.get_waiter('instance_status_ok')
     waiter.wait(InstanceIds=get_instance_ids(instances))
@@ -179,16 +191,19 @@ def start_instances(no_instances=1):
     
     return instances
 
+# gets the ids each instance in a list of instances
 def get_instance_ids(instances):
     ids = []
     for instance in instances:
         ids.append(instance.instance_id)
     return ids
 
+# terminatess each instance within a list of instances
 def terminate_instances(instances):
     for instance in instances:
         instance.terminate()
 
+# sends a unix command to a instance
 def send_command_to_instance(instance, instance_no, commands):
     client = boto3.client('ssm')
     instance_id = instance.instance_id
@@ -202,25 +217,32 @@ def send_command_to_instance(instance, instance_no, commands):
     )
     print("Commands sent to Instance-" + str(instance_no) + ".")
 
+# sends all generated commands to instances
 def send_all_commands(instances, commands):
     count = 0
     for i in instances:
         send_command_to_instance(i, count, [commands[count]])
         count += 1
 
+# gets the output from an instance
 def get_command_output(instances):
     # returns as soon as the first vm recieves an output
     client = boto3.client('ssm')
     output = []
     wait = True
+
+    # waits until an instance produces an putput
     while wait:
         count = 0
+
+        # checking each instacne fora response
         for i in instances:
             response = client.list_command_invocations(
                 InstanceId=i.instance_id,
                 Details=True
             )
-            # print(response)
+            
+            # handles the response produced from an instance
             cinvs = response['CommandInvocations']
             if (cinvs):
                 status = response['CommandInvocations'][0]['Status']
@@ -245,26 +267,31 @@ def calculate_desired_num_of_vms(difficulty, time_limit, confidence):
     # number of trials that can be performed by one vm in time given
     total_trials = time_limit * 160000
     p_golden = 1 /(2**(difficulty))
+    
     # expectation is set to one, giving us the expectation of trials
     expected_no_trials  =  (1 / p_golden) * confidence
     number_of_vms = expected_no_trials / total_trials
     number_of_vms = math.ceil(number_of_vms)
+    
     return number_of_vms
     
-
+# calculates the right commands to give each instance so that the work is correctly across instances
 def generate_commands(number_of_vms, time_limit, difficulty, performance_flag, start_val=0):
 
+    # finds the range of nonces to check for each instance
     commands = []
     ranges = proof_of_work.split_work(number_of_vms, time_limit, speed=150000, start_val=0)
     performance = ''
     if performance_flag: performance = ' -P '
 
+    # produces the unix command as a string to send to each intsance
     for i in range(number_of_vms):
         command = f"python3 /home/ec2-user/proof_of_work.py {performance}-T {time_limit} -D {difficulty} -N {number_of_vms} -b {ranges[i]['Start']} -e {ranges[i]['Stop']}"
         commands.append(command)
 
     return commands
 
+# runs an experiment listed in experiments.py
 def run_experiment(number_of_vms, time_limit, difficulty, performance_flag=False):
     instances = start_instances(number_of_vms)
     # divides work here
@@ -274,6 +301,7 @@ def run_experiment(number_of_vms, time_limit, difficulty, performance_flag=False
     terminate_instances(instances)
     return output
 
+# runs multiple experiment listed in experiments.py but shanging the difficulty each time
 def run_multiple_experiments(number_of_vms, time_limit, difficulty, performance_flag=False):
     instances = start_instances(number_of_vms)
     # divides work here
@@ -293,19 +321,23 @@ def run_multiple_experiments(number_of_vms, time_limit, difficulty, performance_
     return result
 
 def main(args):
+    # arguments for the program
     number_of_vms = args.number_of_vms
     confidence = args.confidence
     time_limit = args.time
     difficulty = args.difficulty
     performance = args.performance
 
+    # run the cloud setup if you cant find a key in the current directory
     if not os.path.exists('aw16997-keypair.pem'):
         cloud_setup()
 
+    # autimatically calculates if desired number of vms if not set
     if number_of_vms == 0:
         number_of_vms = calculate_desired_num_of_vms(difficulty, time_limit, confidence)
         print(f"automatically chosen {number_of_vms} virtual machine(s) that will yield a golden nonce within {time_limit} seconds with {confidence*100}% confidence")
     
+    # perform a perfrmance test to determine how many nonces can be checked per second
     if performance: 
         print("number of virtual machines has been set to 1 for performance test")
         number_of_vms = 1
@@ -313,6 +345,8 @@ def main(args):
     print(run_experiment(number_of_vms, time_limit, difficulty, performance))
 
 if __name__ == "__main__":
+
+    # parsing arguments for the program
     parser = argparse.ArgumentParser(
         description="Finding the golden nonce in the cloud.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,

@@ -31,6 +31,10 @@ Default output format [None]: json
 
 * A table of command line options are given below
 
+```
+$ python cloud_access.py -P | -L | [-N] [-D] [-T]
+```
+
 <!-- parser.add_argument("-N", "--number-of-vms", help="number of vms to run the code", choices=range(51), required=False, type=int, default=0)
 parser.add_argument("-D", "--difficulty", help="difficulty",choices=range(256), type=int, default=0, required=False)
 parser.add_argument("-L", "--confidence", help="confidence level between 0 and 1", default=1, type=float, required=False)

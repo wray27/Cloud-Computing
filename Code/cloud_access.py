@@ -180,7 +180,8 @@ def start_instances(no_instances=1):
         ip_address = instance.public_ip_address.replace('.','-')
         print("Instance-" + str(count) + " IP Address: " + instance.public_ip_address)
         time.sleep(12)
-        os.system('scp -oUserKnownHostsFile=/dev/null -o "StrictHostKeyChecking no" -i %s %s ec2-user@ec2-%s.eu-west-2.compute.amazonaws.com:proof_of_work.py' % ('aw16997-keypair.pem', 'proof_of_work.py', ip_address))
+        os.system('scp -oUserKnownHostsFile=/dev/null  -o LogLevel=ERROR -o "StrictHostKeyChecking no" -i %s %s ec2-user@ec2-%s.eu-west-2.compute.amazonaws.com:proof_of_work.py' %
+                  ('aw16997-keypair.pem', 'proof_of_work.py', ip_address))
         count += 1
     
     # checking all instances are ok

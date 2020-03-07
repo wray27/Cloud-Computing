@@ -115,7 +115,7 @@ def cloud_setup():
     )
     print("Security group created.")
 
-    # creating a key to ssh into instances saves it to the currwent directory
+    # creating a key to ssh into instances then saves it to the current directory
     key_name = 'aw16997-keypair'
     print("Creating Key Pair " + key_name + "...")
     outfile = open('aw16997-keypair.pem', 'w')

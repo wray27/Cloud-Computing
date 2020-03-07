@@ -204,7 +204,7 @@ def terminate_instances(instances):
     for instance in instances:
         instance.terminate()
 
-# sends a unix command to a instance
+# sends a unix command to an instance
 def send_command_to_instance(instance, instance_no, commands):
     client = boto3.client('ssm')
     instance_id = instance.instance_id

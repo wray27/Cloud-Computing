@@ -6,7 +6,6 @@ import os
 import argparse
 from multiprocessing import Process, Queue
 
-
 # this file finds the golden nonce and is designed to be ran in the cloud or on a local machine
 
 # splits up work over multiple instacne

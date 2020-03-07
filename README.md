@@ -45,7 +45,7 @@ parser.add_argument("-P", "--performance", help="runs a performance test", actio
 |-T|--time  |Time limit given to find a golden nonce before all Virtual machines are terminated. Default value is 300 seconds.|int|No|
 |-P|--performance  |Runs a performance test|boolean|No|
 
-*  An example of how the code is ran in the terminal is shown below. The example will set the difficulty level to 24 and the time limit to 200 and splut the work over 4 virtual machines
+*  An example of how the code is ran in the terminal is shown below. The example will set the difficulty level to 24 and the time limit to 200 and split the work over 4 virtual machines
 
 
 ``` 

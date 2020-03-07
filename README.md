@@ -49,7 +49,8 @@ parser.add_argument("-P", "--performance", help="runs a performance test", actio
 
 
 ``` 
-$ python Code/cloud_access.py -D 24 -T 200 -N 4
+$ cd Code
+$ python cloud_access.py -D 24 -T 200 -N 4
 ```
 ## Clean up
 

@@ -31,6 +31,10 @@ Default output format [None]: json
 
 * A table of command line options are given below
 
+```
+$ python cloud_access.py -P | -L | [-N] [-D] [-T]
+```
+
 <!-- parser.add_argument("-N", "--number-of-vms", help="number of vms to run the code", choices=range(51), required=False, type=int, default=0)
 parser.add_argument("-D", "--difficulty", help="difficulty",choices=range(256), type=int, default=0, required=False)
 parser.add_argument("-L", "--confidence", help="confidence level between 0 and 1", default=1, type=float, required=False)
@@ -39,9 +43,9 @@ parser.add_argument("-P", "--performance", help="runs a performance test", actio
 
 | Short Argument| Long Argument|Description|Type |Required|
 |:-------------|:-------------|:------------|:---------|:----------|
-|-N|--number-of-vms  |Allows a user to specify the number of VMs to run the code. By default is 0, and CND will automatically calculate a desire number of virtual machines to use.|int| No|
+|-N|--number-of-vms  |Allows a user to specify the number of VMs to run the code. By default is 0, and CND will automatically calculate a desire number of virtual machines to use.|int|No|
 |-D|--difficulty  |Allows a user to set the difficulty level for the proof-of-work, difficulty is the number of leading bits that are zero in the returned hash value.| int   |Yes|
-|-L|--confidence |A user can set the desired confidence level, between 0 and 1 of whether a golden nonce can be found in time T| float    | No    |
+|-L|--confidence |A user can set the desired confidence level, between 0 and 1 of whether a golden nonce can be found in time T, by calculating a desired number of virtual machines.| float    |No|
 |-T|--time  |Time limit given to find a golden nonce before all Virtual machines are terminated. Default value is 300 seconds.|int|No|
 |-P|--performance  |Runs a performance test|boolean|No|
 
